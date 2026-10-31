@@ -1,6 +1,6 @@
 import { connection } from "next/server";
 import { getDb, type Tx } from "./db";
-import { freeSlots, slotsAcrossDoctors, worksOn, type Busy } from "./schedule.ts";
+import { bookableDates, freeSlots, slotsAcrossDoctors, worksOn, type Busy } from "./schedule.ts";
 import { addDays, clinicDate, clinicInstant } from "./time.ts";
 import { newRef, seedAppointments } from "./seed";
 
@@ -198,3 +198,16 @@ export async function resetDemo() {
 }
 
 export const todayInClinic = () => clinicDate(new Date());
+
+/** The earliest bookable time for a service across its doctors, looking ahead day by day. */
+export async function nextAvailable(serviceSlug: string) {
+  const [services, doctors] = await Promise.all([getServices(), getDoctors()]);
+  const service = services.find((s) => s.slug === serviceSlug);
+  if (!service) return null;
+  const team = doctors.filter((d) => d.specialty === service.specialty);
+  for (const date of bookableDates(team, todayInClinic())) {
+    const [first] = await availability(service, team, date);
+    if (first) return { service, date, time: first.time, doctor: team.find((d) => d.id === first.doctorIds[0])! };
+  }
+  return null;
+}

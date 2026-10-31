@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { aed, Avatar, workDays } from "@/components/ui";
-import { getDoctors, getServices } from "@/lib/clinic";
-import { formatTime } from "@/lib/time";
+import { getDoctors, getServices, nextAvailable } from "@/lib/clinic";
+import { formatDate, formatTime } from "@/lib/time";
 
 const SPECIALTY_LABELS: Record<string, string> = {
   general: "General practice",
@@ -19,7 +19,7 @@ const FAQ = [
 ];
 
 export default async function Home() {
-  const [services, doctors] = await Promise.all([getServices(), getDoctors()]);
+  const [services, doctors, nextGp] = await Promise.all([getServices(), getDoctors(), nextAvailable("general-consultation")]);
   const groups = Object.keys(SPECIALTY_LABELS).map((key) => ({
     key,
     label: SPECIALTY_LABELS[key],
@@ -29,16 +29,11 @@ export default async function Home() {
   return (
     <>
       {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-soft via-white to-mist">
-        <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-teal-brand/10" />
-        <div className="absolute right-40 bottom-0 h-48 w-48 rounded-full bg-coral/10" />
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 grid gap-10 lg:grid-cols-[1.2fr_1fr] items-center">
+      <section className="bg-white border-b border-line">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 grid gap-10 lg:grid-cols-[1.2fr_1fr] items-center">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-teal-dark border border-line">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Same-day appointments available
-            </p>
-            <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
-              Care for the whole family, <span className="text-teal-brand">booked in a minute.</span>
+            <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+              Care for the whole family, booked in a minute.
             </h1>
             <p className="mt-4 text-lg text-ink-soft max-w-xl">
               See a GP, dentist, paediatrician, dermatologist or physiotherapist. Pick a time that suits you and get an
@@ -52,6 +47,20 @@ export default async function Home() {
                 View services & prices
               </Link>
             </div>
+            {nextGp && (
+              <Link
+                href={`/book?service=general-consultation&doctor=${nextGp.doctor.slug}&date=${nextGp.date}&time=${nextGp.time}`}
+                className="mt-8 flex max-w-md items-center gap-4 border-l-4 border-teal-brand bg-mist px-4 py-3 hover:bg-teal-soft"
+              >
+                <span className="text-sm">
+                  <span className="block text-ink-soft">Next free GP appointment</span>
+                  <span className="font-bold">
+                    {formatDate(nextGp.date)}, {formatTime(nextGp.time)} with {nextGp.doctor.name}
+                  </span>
+                </span>
+                <span className="ml-auto text-teal-brand font-bold">→</span>
+              </Link>
+            )}
           </div>
           <div className="rounded-3xl bg-white border border-line p-6 shadow-sm space-y-4">
             <p className="font-semibold">Our doctors this week</p>
