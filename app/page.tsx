@@ -1,69 +1,166 @@
-import Image from "next/image";
+import Link from "next/link";
+import { aed, Avatar, workDays } from "@/components/ui";
+import { getDoctors, getServices } from "@/lib/clinic";
+import { formatTime } from "@/lib/time";
 
-export default function Home() {
+const SPECIALTY_LABELS: Record<string, string> = {
+  general: "General practice",
+  dental: "Dental",
+  paediatrics: "Children's health",
+  skin: "Dermatology",
+  physio: "Physiotherapy",
+};
+
+const FAQ = [
+  ["Can I book for my child?", "Yes. Choose a children's service and enter your child's name as the patient; add your own name in the notes."],
+  ["What if I need to cancel?", "Use the link on your confirmation page to cancel online up to the start of your appointment. It frees the time for someone else."],
+  ["Do you accept insurance?", "We accept most major health insurance plans. Bring your insurance card and Emirates ID to your first visit."],
+  ["How early should I arrive?", "Ten minutes before your appointment, or fifteen if it's your first visit, so we can register you."],
+];
+
+export default async function Home() {
+  const [services, doctors] = await Promise.all([getServices(), getDoctors()]);
+  const groups = Object.keys(SPECIALTY_LABELS).map((key) => ({
+    key,
+    label: SPECIALTY_LABELS[key],
+    services: services.filter((s) => s.specialty === key),
+  }));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-teal-soft via-white to-mist">
+        <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-teal-brand/10" />
+        <div className="absolute right-40 bottom-0 h-48 w-48 rounded-full bg-coral/10" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 grid gap-10 lg:grid-cols-[1.2fr_1fr] items-center">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-teal-dark border border-line">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Same-day appointments available
+            </p>
+            <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+              Care for the whole family, <span className="text-teal-brand">booked in a minute.</span>
+            </h1>
+            <p className="mt-4 text-lg text-ink-soft max-w-xl">
+              See a GP, dentist, paediatrician, dermatologist or physiotherapist. Pick a time that suits you and get an
+              instant confirmation.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/book" className="rounded-full bg-teal-brand text-white px-6 py-3.5 font-semibold hover:bg-teal-dark">
+                Book an appointment
+              </Link>
+              <Link href="#services" className="rounded-full border border-line bg-white px-6 py-3.5 font-semibold hover:border-teal-brand">
+                View services & prices
+              </Link>
+            </div>
+          </div>
+          <div className="rounded-3xl bg-white border border-line p-6 shadow-sm space-y-4">
+            <p className="font-semibold">Our doctors this week</p>
+            {doctors.map((d) => (
+              <div key={d.slug} className="flex items-center gap-3">
+                <Avatar doctor={d} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{d.name}</p>
+                  <p className="text-xs text-ink-soft">{d.title}</p>
+                </div>
+                <p className="text-xs text-ink-soft whitespace-nowrap">{workDays(d.work_days)}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* SERVICES */}
+      <section id="services" className="max-w-6xl mx-auto px-4 sm:px-6 mt-16 scroll-mt-24">
+        <h2 className="text-3xl font-extrabold">Services & prices</h2>
+        <p className="mt-2 text-ink-soft">Fixed prices, shown before you book.</p>
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
+          {groups.map((g) => (
+            <div key={g.key} className="rounded-2xl bg-white border border-line p-6">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-brand">{g.label}</p>
+              <ul className="mt-3 divide-y divide-line">
+                {g.services.map((s) => (
+                  <li key={s.slug} className="py-3 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold">{s.name}</p>
+                      <p className="text-sm text-ink-soft">{s.description}</p>
+                      <p className="text-xs text-ink-soft mt-1">{s.duration_min} min · {aed(s.price)}</p>
+                    </div>
+                    <Link
+                      href={`/book?service=${s.slug}`}
+                      className="shrink-0 rounded-full bg-teal-soft text-teal-dark text-sm font-semibold px-4 py-2 hover:bg-teal-brand hover:text-white"
+                    >
+                      Book
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* DOCTORS */}
+      <section id="doctors" className="max-w-6xl mx-auto px-4 sm:px-6 mt-16 scroll-mt-24">
+        <h2 className="text-3xl font-extrabold">Meet our team</h2>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {doctors.map((d) => (
+            <div key={d.slug} className="rounded-2xl bg-white border border-line p-6 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <Avatar doctor={d} size="lg" />
+                <div>
+                  <p className="font-bold">{d.name}</p>
+                  <p className="text-sm text-teal-brand font-semibold">{d.title}</p>
+                </div>
+              </div>
+              <p className="text-sm text-ink-soft">{d.bio}</p>
+              <p className="text-xs text-ink-soft">
+                {workDays(d.work_days)} · {formatTime(d.start_time)} – {formatTime(d.end_time)}
+                <br />
+                Speaks {d.languages.join(", ")}
+              </p>
+              <Link
+                href={`/book?service=${services.find((s) => s.specialty === d.specialty)?.slug}&doctor=${d.slug}`}
+                className="mt-auto rounded-full border border-teal-brand text-teal-dark text-sm font-semibold px-4 py-2 text-center hover:bg-teal-brand hover:text-white"
+              >
+                Book with {d.name.replace(/^Dr\.\s*/, "").split(" ")[0]}
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* VISIT + FAQ */}
+      <section id="visit" className="max-w-6xl mx-auto px-4 sm:px-6 mt-16 grid gap-8 lg:grid-cols-2 scroll-mt-24">
+        <div className="rounded-2xl bg-teal-brand text-white p-8 space-y-4">
+          <h2 className="text-2xl font-extrabold">Visit us</h2>
+          <p className="text-white/85">Ground floor, Al Wasl area, Dubai. Free parking for patients behind the building.</p>
+          <dl className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt className="text-white/70">Mon – Sat</dt>
+              <dd className="font-semibold">8 am – 8 pm</dd>
+            </div>
+            <div>
+              <dt className="text-white/70">Sunday</dt>
+              <dd className="font-semibold">Closed</dd>
+            </div>
+          </dl>
+          <Link href="/book" className="inline-block rounded-full bg-white text-teal-dark font-semibold px-5 py-2.5 hover:bg-teal-soft">
+            Book online
+          </Link>
+        </div>
+        <div className="space-y-3">
+          <h2 className="text-2xl font-extrabold">Questions</h2>
+          {FAQ.map(([q, a]) => (
+            <details key={q} className="group rounded-xl bg-white border border-line p-4">
+              <summary className="cursor-pointer font-semibold list-none flex justify-between gap-3">
+                {q}
+                <span className="text-teal-brand group-open:rotate-45 transition">+</span>
+              </summary>
+              <p className="mt-2 text-sm text-ink-soft">{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
