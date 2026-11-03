@@ -24,10 +24,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-teal-brand text-white">+</span>
               Tidewell
             </Link>
-            <nav className="flex items-center gap-5 text-sm font-medium">
+            <nav className="flex items-center gap-4 sm:gap-5 text-sm font-medium whitespace-nowrap">
               <Link href="/#services" className="hidden sm:inline hover:text-teal-brand">Services</Link>
               <Link href="/#doctors" className="hidden sm:inline hover:text-teal-brand">Doctors</Link>
               <Link href="/#visit" className="hidden sm:inline hover:text-teal-brand">Visit us</Link>
+              <Link href="/assistant" className="hover:text-teal-brand">
+                <span className="sm:hidden">Assistant</span>
+                <span className="hidden sm:inline">Ask the assistant</span>
+              </Link>
               <Link href="/book" className="rounded-full bg-teal-brand text-white px-4 py-2 hover:bg-teal-dark">
                 Book appointment
               </Link>

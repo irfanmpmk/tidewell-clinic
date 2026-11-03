@@ -197,6 +197,59 @@ export async function resetDemo() {
   });
 }
 
+// ---------------------------------------------------------------- AI assistant
+
+export interface AssistantStepRow {
+  id: number;
+  conversation: string;
+  tool: string;
+  ok: boolean;
+  summary: string;
+  ms: number;
+  created_at: Date;
+}
+
+export async function logAssistantSteps(
+  conversation: string,
+  steps: { tool: string; args: Record<string, unknown>; ok: boolean; summary: string; ms: number }[],
+) {
+  if (!steps.length) return;
+  const db = await getDb();
+  const values = steps.map((_, i) => `($1,$${i * 5 + 2},$${i * 5 + 3},$${i * 5 + 4},$${i * 5 + 5},$${i * 5 + 6})`).join(",");
+  await db.query(
+    `INSERT INTO clinic.assistant_steps (conversation, tool, args, ok, summary, ms) VALUES ${values}`,
+    [conversation, ...steps.flatMap((s) => [s.tool, JSON.stringify(s.args), s.ok, s.summary, s.ms])],
+  );
+}
+
+export async function recentAssistantSteps(limit = 15): Promise<AssistantStepRow[]> {
+  await connection();
+  return (await getDb()).query<AssistantStepRow>(
+    "SELECT id, conversation, tool, ok, summary, ms, created_at FROM clinic.assistant_steps ORDER BY id DESC LIMIT $1",
+    [limit],
+  );
+}
+
+/** Counts a request for this visitor in the current hour; false once they are over the limit. */
+export async function allowAssistantRequest(visitor: string, perHour: number) {
+  const [{ count }] = await (await getDb()).query<{ count: number }>(
+    `INSERT INTO clinic.assistant_usage (visitor, hour, count) VALUES ($1, date_trunc('hour', now()), 1)
+     ON CONFLICT (visitor, hour) DO UPDATE SET count = clinic.assistant_usage.count + 1
+     RETURNING count`,
+    [visitor],
+  );
+  return count <= perHour;
+}
+
+/** Records a proposal as confirmed; false if it already was, so a confirmation can't be replayed. */
+export async function claimConfirmation(nonce: string) {
+  const rows = await (await getDb()).query(
+    "INSERT INTO clinic.assistant_confirmations (nonce) VALUES ($1) ON CONFLICT DO NOTHING RETURNING nonce",
+    [nonce],
+  );
+  return rows.length === 1;
+}
+
 export const todayInClinic = () => clinicDate(new Date());
 
 /** The earliest bookable time for a service across its doctors, looking ahead day by day. */

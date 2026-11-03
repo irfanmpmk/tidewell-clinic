@@ -52,6 +52,29 @@ const SCHEMA = `
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
   CREATE INDEX IF NOT EXISTS appointments_doctor_time ON clinic.appointments (doctor_id, starts_at);
+
+  -- AI assistant: one row per tool call (patient details redacted), per-visitor rate limits,
+  -- and confirmed proposals so a confirmation link can't be used twice.
+  CREATE TABLE IF NOT EXISTS clinic.assistant_steps (
+    id SERIAL PRIMARY KEY,
+    conversation TEXT NOT NULL,
+    tool TEXT NOT NULL,
+    args JSONB NOT NULL,
+    ok BOOLEAN NOT NULL,
+    summary TEXT NOT NULL,
+    ms INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE TABLE IF NOT EXISTS clinic.assistant_usage (
+    visitor TEXT NOT NULL,
+    hour TIMESTAMPTZ NOT NULL,
+    count INTEGER NOT NULL,
+    PRIMARY KEY (visitor, hour)
+  );
+  CREATE TABLE IF NOT EXISTS clinic.assistant_confirmations (
+    nonce TEXT PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
 `;
 
 async function connect(): Promise<Db> {

@@ -43,8 +43,8 @@ export default async function Home() {
               <Link href="/book" className="rounded-full bg-teal-brand text-white px-6 py-3.5 font-semibold hover:bg-teal-dark">
                 Book an appointment
               </Link>
-              <Link href="#services" className="rounded-full border border-line bg-white px-6 py-3.5 font-semibold hover:border-teal-brand">
-                View services & prices
+              <Link href="/assistant" className="rounded-full border border-line bg-white px-6 py-3.5 font-semibold hover:border-teal-brand">
+                Ask the booking assistant
               </Link>
             </div>
             {nextGp && (

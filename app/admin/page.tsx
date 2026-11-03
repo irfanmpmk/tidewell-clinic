@@ -3,7 +3,16 @@ import Link from "next/link";
 import { logout, resetDemoData, updateStatus } from "@/app/actions";
 import { aed, Avatar } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
-import { appointmentsOn, clinicStats, getDoctors, STATUS_LABELS, todayInClinic, type Appointment, type Status } from "@/lib/clinic";
+import {
+  appointmentsOn,
+  clinicStats,
+  getDoctors,
+  recentAssistantSteps,
+  STATUS_LABELS,
+  todayInClinic,
+  type Appointment,
+  type Status,
+} from "@/lib/clinic";
 import { LUNCH, worksOn } from "@/lib/schedule";
 import { addDays, clinicMinutes, formatDate, formatTime, fromMinutes, isIsoDate, toMinutes } from "@/lib/time";
 
@@ -44,7 +53,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const raw = (await searchParams).date;
   const today = todayInClinic();
   const date = typeof raw === "string" && isIsoDate(raw) ? raw : today;
-  const [doctors, appts, stats] = await Promise.all([getDoctors(), appointmentsOn(date), clinicStats(today)]);
+  const [doctors, appts, stats, assistantSteps] = await Promise.all([
+    getDoctors(),
+    appointmentsOn(date),
+    clinicStats(today),
+    recentAssistantSteps(),
+  ]);
 
   const noShowRate = stats.past ? Math.round((stats.no_shows / stats.past) * 100) : 0;
   const active = appts.filter((a) => a.status !== "cancelled");
@@ -182,18 +196,44 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           </table>
         </div>
 
-        <aside className="rounded-2xl bg-white border border-line p-5 self-start">
-          <p className="font-bold">Busiest services</p>
-          <p className="text-xs text-ink-soft">Completed, last 7 days</p>
-          <ol className="mt-3 space-y-2 text-sm">
-            {stats.services.map((s) => (
-              <li key={s.name} className="flex justify-between gap-3">
-                <span>{s.name}</span>
-                <span className="text-ink-soft whitespace-nowrap">{s.count} · {aed(s.revenue)}</span>
-              </li>
-            ))}
-          </ol>
-        </aside>
+        <div className="space-y-6 self-start">
+          <aside className="rounded-2xl bg-white border border-line p-5">
+            <p className="font-bold">Busiest services</p>
+            <p className="text-xs text-ink-soft">Completed, last 7 days</p>
+            <ol className="mt-3 space-y-2 text-sm">
+              {stats.services.map((s) => (
+                <li key={s.name} className="flex justify-between gap-3">
+                  <span>{s.name}</span>
+                  <span className="text-ink-soft whitespace-nowrap">{s.count} · {aed(s.revenue)}</span>
+                </li>
+              ))}
+            </ol>
+          </aside>
+
+          <aside className="rounded-2xl bg-white border border-line p-5">
+            <p className="font-bold">Booking assistant activity</p>
+            <p className="text-xs text-ink-soft">Latest steps the AI took. Patient details are never logged.</p>
+            {assistantSteps.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-soft">
+                No activity yet. <Link href="/assistant" className="text-teal-brand font-semibold hover:underline">Try the assistant</Link>
+              </p>
+            ) : (
+              <ol className="mt-3 space-y-2.5 text-sm">
+                {assistantSteps.map((s) => (
+                  <li key={s.id} className="flex gap-2">
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${s.ok ? "bg-emerald-500" : "bg-red-500"}`} aria-label={s.ok ? "Succeeded" : "Failed"} />
+                    <span className="min-w-0">
+                      <span className="block font-mono text-[11px] text-ink-soft">
+                        {formatTime(fromMinutes(clinicMinutes(s.created_at)))} · {s.tool} · {s.ms} ms
+                      </span>
+                      <span className="block">{s.summary}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </aside>
+        </div>
       </div>
     </div>
   );
