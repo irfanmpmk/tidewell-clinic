@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { GAVE_UP, runAgent, ToolError, type Content, type Model, type Tool } from "./agent.ts";
+import { GAVE_UP, runAgent, stripLeakedPlanning, ToolError, type Content, type Model, type Tool } from "./agent.ts";
 import { saidByPatient } from "./guards.ts";
 import { readProposal, signProposal } from "./proposal.ts";
 
@@ -107,6 +107,16 @@ test("gives up after the step limit instead of looping forever", async () => {
 test("thought parts are not shown to the patient", async () => {
   const { model } = scripted([[{ text: "internal reasoning", thought: true }, { text: "Hello!" }]]);
   assert.equal((await runAgent({ history: [user("hi")], model, tools })).text, "Hello!");
+});
+
+test("planning text a model leaks into its reply is removed", () => {
+  const names = ["find_slots", "propose_booking"];
+  const leaked =
+    "_to_call: propose_booking with date=2026-11-05, time=08:00, etc. But wait, I need the patient's full name. Let me ask the patient for this info.That would be Thursday 5 November at 8:00 am. Could you share your full name?";
+  assert.equal(stripLeakedPlanning(leaked, names), "That would be Thursday 5 November at 8:00 am. Could you share your full name?");
+  // Normal replies are untouched, including "let me know".
+  const normal = "I have 9:00 am or 9:30 am. Let me know which you prefer!";
+  assert.equal(stripLeakedPlanning(normal, names), normal);
 });
 
 test("patient details must have been typed by the patient", () => {

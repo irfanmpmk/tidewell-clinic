@@ -47,6 +47,20 @@ const PATIENT_FIELDS = new Set(["patient_name", "phone", "email", "notes"]);
 export const redact = (args: Record<string, unknown>) =>
   Object.fromEntries(Object.entries(args).map(([k, v]) => [k, PATIENT_FIELDS.has(k) ? "[redacted]" : v]));
 
+/**
+ * Some models occasionally write their planning as ordinary text ("_to_call: propose_booking with …
+ * Let me ask the patient for this info.That would be …"). If a reply mentions a tool, keep only what
+ * follows the last planning sentence.
+ */
+export function stripLeakedPlanning(text: string, toolNames: string[]) {
+  const tool = new RegExp(`\\b(?:${toolNames.join("|")})\\b|_to_call|function ?call`, "i");
+  if (!tool.test(text)) return text;
+  const planning = new RegExp(`[^.?!]*(?:${toolNames.join("|")}|_to_call|function ?call|\\blet me (?!know)|\\bbut wait\\b)[^.?!]*[.?!]*`, "gi");
+  let end = 0;
+  for (const m of text.matchAll(planning)) end = m.index + m[0].length;
+  return text.slice(end).trim();
+}
+
 export const GAVE_UP =
   "Sorry, I couldn't finish that. Could you ask in a simpler way? You can also book directly with the booking form.";
 
@@ -60,7 +74,8 @@ export async function runAgent(opts: { history: Content[]; model: Model; tools: 
     history.push(reply);
     const calls = reply.parts.filter((p) => p.functionCall);
     if (!calls.length) {
-      const text = reply.parts.filter((p) => p.text && !p.thought).map((p) => p.text).join("").trim();
+      const raw = reply.parts.filter((p) => p.text && !p.thought).map((p) => p.text).join("").trim();
+      const text = stripLeakedPlanning(raw, opts.tools.map((t) => t.name));
       return { history, text: text || GAVE_UP, steps, proposal };
     }
 
